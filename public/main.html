@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audio Mastering</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <header class="text-center mb-8">
+            <h1 class="text-3xl font-bold text-gray-800">Audio Mastering Tool</h1>
+            <p class="text-gray-600 mt-2">Upload your audio file for professional mastering</p>
+        </header>
+
+        <div class="max-w-xl mx-auto bg-white rounded-lg shadow-md p-6">
+            <form id="uploadForm" class="space-y-4">
+                <div 
+                    id="dropZone" 
+                    class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-blue-500 transition-colors"
+                >
+                    <input 
+                        type="file" 
+                        id="audioFile" 
+                        name="audioFile" 
+                        accept="audio/*" 
+                        class="hidden"
+                    >
+                    <label for="audioFile" class="cursor-pointer">
+                        <div class="text-gray-600">
+                            <svg class="mx-auto h-12 w-12 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                            </svg>
+                            <p class="mb-2">Drag and drop your audio file here</p>
+                            <p class="text-sm text-gray-500">or click to select a file</p>
+                        </div>
+                    </label>
+                </div>
+
+                <div id="fileInfo" class="hidden">
+                    <p class="text-sm text-gray-600">Selected file: <span id="fileName"></span></p>
+                </div>
+
+                <button 
+                    type="submit" 
+                    class="w-full bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600 transition-colors disabled:bg-gray-400"
+                    disabled
+                >
+                    Master Audio
+                </button>
+            </form>
+
+            <div id="progress" class="hidden mt-4">
+                <div class="w-full bg-gray-200 rounded-full h-2">
+                    <div class="bg-blue-500 h-2 rounded-full" style="width: 0%"></div>
+                </div>
+                <p class="text-sm text-gray-600 mt-2">Processing...</p>
+            </div>
+
+            <div id="result" class="hidden mt-4">
+                <div class="p-4 bg-green-100 rounded-lg">
+                    <p class="text-green-700">Mastering complete!</p>
+                    <a 
+                        id="downloadLink" 
+                        href="#" 
+                        class="inline-block mt-2 bg-green-500 text-white py-2 px-4 rounded hover:bg-green-600 transition-colors"
+                    >
+                        Download Mastered Audio
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const form = document.getElementById('uploadForm');
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('audioFile');
+        const fileInfo = document.getElementById('fileInfo');
+        const fileName = document.getElementById('fileName');
+        const progress = document.getElementById('progress');
+        const result = document.getElementById('result');
+        const submitButton = form.querySelector('button[type="submit"]');
+
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('border-blue-500');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('border-blue-500');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('border-blue-500');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                fileInput.files = files;
+                updateFileInfo();
+            }
+        });
+
+        fileInput.addEventListener('change', updateFileInfo);
+
+        function updateFileInfo() {
+            if (fileInput.files.length > 0) {
+                fileName.textContent = fileInput.files[0].name;
+                fileInfo.classList.remove('hidden');
+                submitButton.disabled = false;
+            }
+        }
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData();
+            formData.append('audioFile', fileInput.files[0]);
+
+            submitButton.disabled = true;
+            progress.classList.remove('hidden');
+            result.classList.add('hidden');
+
+            try {
+                const response = await fetch('/api/master', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    progress.classList.add('hidden');
+                    result.classList.remove('hidden');
+                    document.getElementById('downloadLink').href = data.downloadLink;
+                } else {
+                    throw new Error(data.error);
+                }
+            } catch (error) {
+                alert('Error processing audio: ' + error.message);
+            } finally {
+                submitButton.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>
